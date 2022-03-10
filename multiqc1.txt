@@ -1,0 +1,41 @@
+#!/bin/bash
+# Use current working directory
+#$ -cwd
+#
+# Join stdout and stderr
+#$ -j y
+#
+# Run job through bash shell
+#$ -S /bin/bash
+#
+#You can edit the script since this line
+#
+# Your job name
+#$ -N MULTIQC
+#
+# Send an email after the job has finished
+#$ -m e
+#$ -M sogusama02@gmail.com
+#
+#
+# If modules are needed, source modules environment (Do not delete the next line):
+. /etc/profile.d/modules.sh
+#
+# Add any modules you might require:
+module load fastqc/0.11.3
+module load multiqc/1.5
+#
+# Write your commands in the next line
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417885.sra_1.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417885.sra_2.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417886.sra_1.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417886.sra_2.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417887.sra_1.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417887.sra_2.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417888.sra_1.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417888.sra_2.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417889.sra_1.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417889.sra_2.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417890.sra_1.fastq.gz -o .
+fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417890.sra_2.fastq.gz -o .
+multiqc .

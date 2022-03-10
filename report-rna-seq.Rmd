@@ -1,0 +1,72 @@
+---
+title: "RNA-seq"
+author: "Sofia Salazar & Bruno Villalobos"
+date: "3/9/2022"
+output: html_document
+---
+
+## Introduction
+
+In this report we are going to do an analisis of RNA-seq data using the following pipeline, starting with the raw read RNA-seq data from the experiment SRP127520 **"Knockdown of FOXP1 promotes the development of lung adenocarcinoma"**.
+
+## Pipeline
+
+### Quality control
+
+The first step in our pipeline for the analysis is to make a quality report of the raw reads we are provided in order to assess possible quality control strategies and therefore be able to make good conclusion from the full analysis.
+
+For the quality report we are going to use the Multiqc module, using the fastq files stored in the following path
+
+```{bash eval = F}
+/mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520
+```
+ 
+We run the following script from our directory
+
+```{bash}
+cat multiqc1.txt
+```
+
+```{bash eval = F}
+cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC
+qsub multiqc1.sge
+```
+
+And download the multiqc report
+```{bash}
+rsync -rptuvl ssalazar@dna.lavis.unam.mx:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC/multiqc_report.html ./
+```
+
+Based on the report, we are discarding sequences with less than 30Q and also trimmin the ILLUMINA adapter sequences.
+
+## Trimming
+
+For the trimming, we are using the trimmomatic tool, using the following arguments
+
+**PE:** Because we are using paired end sequences
+
+**-phred33:** We are specifing the base quality encoding
+
+**ILLUMINACLIP:** We use the adapters in the fasta file, :2:30:10 are mismatch/accuracy treshold for adapter/reads pairing.
+
+**SLIDINGWINDOW:5:30** Scaning the reads in a 4 base window. If mean quality under 15 in that window, the read is trimmed in the leftmost position of the window.
+
+**MINLEN:** is the minimum length of reads we are accepting, if they are shorted after trimming, we discard them.
+
+```{bash}
+mkdir trimmed
+cd trimmed
+module load trimmomatic/0.33
+
+# Aqui no se cual de los dos usar y tampoco se como hacer que los trimmed se guarden en la carpeta que yo quiera
+
+#Opcion 1 con adapters de Moni
+for file in /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/*1.fastq.gz; do trimmomatic PE -phred33 -basein $file -baseout ${file//_1.fastq/_trmd_1.fastq} ILLUMINACLIP:/mnt/Timina/bioinfoII/rnaseq/resources/adapters/TruSeq3-PE.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40; done
+
+# opcion 2 con adapters que encontre en internet
+for file in /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/*1.fastq.gz; do trimmomatic PE -phred33 -basein $file -baseout ${file//_1.fastq/_trmd_1.fastq} ILLUMINACLIP:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/data/adapters/illumina-univ-adap.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40; done
+
+# moverlos a mi carpeta
+mv *_trmd* /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/trimmed
+```
+
