@@ -1,0 +1,42 @@
+#!/bin/bash
+# Use current working directory
+#$ -cwd
+#
+# Join stdout and stderr
+#$ -j y
+#
+# Run job through bash shell
+#$ -S /bin/bash
+#
+#You can edit the script since this line
+#
+# Your job name
+#$ -N PEtrimming
+#
+# Send an email after the job has finished
+#$ -m e
+#$ -M sogusama02@gmail.com
+#
+#
+# If modules are needed, source modules environment (Do not delete the next line):
+. /etc/profile.d/modules.sh
+#
+# Add any modules you might require:
+module load trimmomatic/0.33
+module load fastqc/0.11.3
+module load multiqc/1.5
+#
+# Write your commands in the next line
+trimmomatic PE -phred33 -basein /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417885.sra_1.fastq.gz -baseout ./SRR6417885_trmd.sra.fastq.gz ILLUMINACLIP:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/data/adapters/adapters-paired.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40
+trimmomatic PE -phred33 -basein /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417886.sra_1.fastq.gz -baseout ./SRR6417886_trmd.sra.fastq.gz ILLUMINACLIP:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/data/adapters/adapters-paired.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40
+trimmomatic PE -phred33 -basein /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417887.sra_1.fastq.gz -baseout ./SRR6417887_trmd.sra.fastq.gz ILLUMINACLIP:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/data/adapters/adapters-paired.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40
+trimmomatic PE -phred33 -basein /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417888.sra_1.fastq.gz -baseout ./SRR6417888_trmd.sra.fastq.gz ILLUMINACLIP:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/data/adapters/adapters-paired.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40
+trimmomatic PE -phred33 -basein /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417889.sra_1.fastq.gz -baseout ./SRR6417889_trmd.sra.fastq.gz ILLUMINACLIP:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/data/adapters/adapters-paired.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40
+trimmomatic PE -phred33 -basein /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417890.sra_1.fastq.gz -baseout ./SRR6417890_trmd.sra.fastq.gz ILLUMINACLIP:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/data/adapters/adapters-paired.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40
+fastqc ./SRR6417885* -o /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2
+fastqc ./SRR6417886* -o /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2
+fastqc ./SRR6417887* -o /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2
+fastqc ./SRR6417888* -o /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2
+fastqc ./SRR6417889* -o /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2
+fastqc ./SRR6417890* -o /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2
+multiqc /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2

@@ -32,9 +32,9 @@ cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC
 qsub multiqc1.sge
 ```
 
-And download the multiqc report
+And downloading the multiqc report
 ```{bash}
-rsync -rptuvl ssalazar@dna.lavis.unam.mx:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC/multiqc_report.html ./
+rsync -rptuvl ssalazar@dna.lavis.unam.mx:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC/multiqc_report1.html .
 ```
 
 Based on the report, we are discarding sequences with less than 30Q and also trimmin the ILLUMINA adapter sequences.
@@ -53,20 +53,15 @@ For the trimming, we are using the trimmomatic tool, using the following argumen
 
 **MINLEN:** is the minimum length of reads we are accepting, if they are shorted after trimming, we discard them.
 
+The full script, adding the command to create a multiqc report of the trimmed sequences is the following:
+
 ```{bash}
-mkdir trimmed
-cd trimmed
-module load trimmomatic/0.33
-
-# Aqui no se cual de los dos usar y tampoco se como hacer que los trimmed se guarden en la carpeta que yo quiera
-
-#Opcion 1 con adapters de Moni
-for file in /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/*1.fastq.gz; do trimmomatic PE -phred33 -basein $file -baseout ${file//_1.fastq/_trmd_1.fastq} ILLUMINACLIP:/mnt/Timina/bioinfoII/rnaseq/resources/adapters/TruSeq3-PE.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40; done
-
-# opcion 2 con adapters que encontre en internet
-for file in /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/*1.fastq.gz; do trimmomatic PE -phred33 -basein $file -baseout ${file//_1.fastq/_trmd_1.fastq} ILLUMINACLIP:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/data/adapters/illumina-univ-adap.fa:2:30:10 SLIDINGWINDOW:5:30 MINLEN:40; done
-
-# moverlos a mi carpeta
-mv *_trmd* /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/trimmed
+cat PE-trimming
 ```
+
+And downloading the multiqc report
+```{bash}
+rsync -rptuvl ssalazar@dna.lavis.unam.mx:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2/multiqc_report2.html .
+```
+
 
