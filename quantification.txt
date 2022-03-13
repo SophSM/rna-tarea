@@ -1,0 +1,33 @@
+#!/bin/bash
+# Use current working directory
+#$ -cwd
+#
+# Join stdout and stderr
+#$ -j y
+#
+# Run job through bash shell
+#$ -S /bin/bash
+#
+#You can edit the scriptsince this line
+#
+# Your job name
+#$ -N Quantification
+#
+# Send an email after the job has finished
+#$ -m e
+#$ -M sogusama02@gmail.com
+#
+#
+# If modules are needed, source modules environment (Do not delete the next line):
+. /etc/profile.d/modules.sh
+#
+# Add any modules you might require:
+module load kallisto/0.45.0
+#
+# Write your commands in the next line
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417885 ../trimmed/SRR6417885* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417886 ../trimmed/SRR6417886* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417887 ../trimmed/SRR6417887* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417888 ../trimmed/SRR6417888* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417889 ../trimmed/SRR6417889* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417890 ../trimmed/SRR6417890*
