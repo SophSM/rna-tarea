@@ -254,7 +254,7 @@ library(tximport)
 library(tidyverse)
 files <- file.path("/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/kallisto", list.dirs("."), "abundance.h5")
 names(files) <- str_extract(files,"SRR\\d+")
-files
+files <- files[c(2, 3, 4, 5, 6, 7)]
 ```
 
 Transcripts need to be associated with gene IDs for gene-level summarization
@@ -275,11 +275,38 @@ tx2genename <- read.csv("/mnt/Timina/bioinfoII/rnaseq/resources/gencode/gencode.
 Runing tximport to summarize transcript-level abundance estimates for transcript- and gene-level analysis.
 
 ```{r}
-
 txi.kallisto <- tximport(files, type = "kallisto", tx2gene = tx2gene, ignoreAfterBar=TRUE, ignoreTxVersion=TRUE)
 txi.kallisto.name <- tximport(files, type = "kallisto", tx2gene = tx2genename, ignoreAfterBar=TRUE, ignoreTxVersion=TRUE)
+
 ```
 
+```{r}
+names(txi.kallisto)
+```
+
+[1] "abundance"           "counts"              "length"             
+[4] "countsFromAbundance"
+
+```{r}
+head(txi.kallisto$counts)
+```
+
+                 SRR6417885  SRR6417886 SRR6417887 SRR6417888 SRR6417889
+ENSG000000000035  48.856706 36.12039819  24.279581  39.413793  37.693556
+ENSG00000000005    0.000000  0.00000000   0.000000   0.000000   0.000000
+ENSG000000004194   0.000000  1.81937909   0.000000   5.729418  22.804753
+ENSG000000004574   6.663615  0.01752127   7.742207   3.390685   8.781861
+ENSG000000004607   9.369975 11.00000000  13.829627   8.001456  16.942265
+ENSG000000009383   0.000000  0.00000000   0.000000   0.000000   0.000000
+                 SRR6417890
+ENSG000000000035  46.855202
+ENSG00000000005    0.000000
+ENSG000000004194  23.005803
+ENSG000000004574   0.000000
+ENSG000000004607   6.367758
+ENSG000000009383   0.000000
+
+### Normalization
 
 ## References
 
