@@ -161,21 +161,21 @@ We first download the reference transcriptome from GENCODE
 # from rna-seq/tarea
 mkdir resources
 cd resources
-wget http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/latest_release/gencode.v39.transcripts.fa.gz
+wget http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.transcripts.fa.gz
 ```
 
 Making the transcriptome index
 
 ```{bash}
 module load kallisto/0.45.0
-kallisto index -i index_kallisto45_gencode_human_v39 gencode.v39.transcripts.fa.gz
+kallisto index -i index_kallisto45_gencode_human_v38 gencode.v38.transcripts.fa.gz
 ```
 
 ### Quantification
 
 We first make directories for each sample
 ```{bash}
-#from /rna-seq/tarea/out
+cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out
 mkdir kallisto 
 ls ../trimmed/ | perl -pe 's/(SRR\d+)_trmd.*/mkdir $1/' | uniq
 ```
@@ -193,7 +193,7 @@ mkdir SRR6417890
 generate lines for our bash script
 
 ```{bash}
-ls | grep "SRR" | perl -pe 's/(SRR\d+)/kallisto quant -i ..\/..\/resources\/index_kallisto45_gencode_human_v39 -o .\/$1 ..\/trimmed\/$1* /'
+ls | grep "SRR" | perl -pe 's/(SRR\d+)/kallisto quant -i ..\/..\/resources\/index_kallisto45_gencode_human_v38 -o .\/$1 ..\/trimmed\/$1* /'
 ```
 
 Bash script
@@ -225,19 +225,65 @@ Bash script
 module load kallisto/0.45.0
 #
 # Write your commands in the next line
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417885 ../trimmed/SRR6417885* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417886 ../trimmed/SRR6417886* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417887 ../trimmed/SRR6417887* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417888 ../trimmed/SRR6417888* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417889 ../trimmed/SRR6417889* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417890 ../trimmed/SRR6417890* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417885 ../trimmed/SRR6417885* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417886 ../trimmed/SRR6417886* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417887 ../trimmed/SRR6417887* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417888 ../trimmed/SRR6417888* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417889 ../trimmed/SRR6417889* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417890 ../trimmed/SRR6417890* 
 ```
 
 ```{bash}
 qsub quantification.sge
 ```
 
+### Data integration
+
+Using tximport
+
+```{bash}
+screen -S txi
+cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/kallisto
+module load r/4.0.2
+R
+```
+
+
+```{r}
+library(tximport)
+library(tidyverse)
+files <- file.path("/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/kallisto", list.dirs("."), "abundance.h5")
+names(files) <- str_extract(files,"SRR\\d+")
+files
+```
+
+Transcripts need to be associated with gene IDs for gene-level summarization
+For kallisto, the files only provide the transcript ID.
+We first make a data.frame called tx2gene with two columns: 1) transcript ID and 2) gene ID.
+
+```{r}
+# Loading tables with the info
+
+# transcript id - gene id correspondence
+tx2gene <- read.csv("/mnt/Timina/bioinfoII/rnaseq/resources/gencode/gencode.v38.basic.pc.transcripts.enstid_ensgid-nover.csv",stringsAsFactors = F)
+# transcript id - gene name correspondence
+tx2genename <- read.csv("/mnt/Timina/bioinfoII/rnaseq/resources/gencode/gencode.v38.basic.pc.transcripts.enstid_genename-nover.csv",stringsAsFactors = F)
+
+```
+
+
+Runing tximport to summarize transcript-level abundance estimates for transcript- and gene-level analysis.
+
+```{r}
+
+txi.kallisto <- tximport(files, type = "kallisto", tx2gene = tx2gene, ignoreAfterBar=TRUE, ignoreTxVersion=TRUE)
+txi.kallisto.name <- tximport(files, type = "kallisto", tx2gene = tx2genename, ignoreAfterBar=TRUE, ignoreTxVersion=TRUE)
+```
+
+
 ## References
+
+https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html
 
 http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
 

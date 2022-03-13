@@ -25,9 +25,9 @@
 module load kallisto/0.45.0
 #
 # Write your commands in the next line
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417885 ../trimmed/SRR6417885* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417886 ../trimmed/SRR6417886* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417887 ../trimmed/SRR6417887* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417888 ../trimmed/SRR6417888* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417889 ../trimmed/SRR6417889* 
-kallisto quant -i ../../resources/index_kallisto45_gencode_human_v39 -o ./SRR6417890 ../trimmed/SRR6417890*
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417885 ../trimmed/SRR6417885* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417886 ../trimmed/SRR6417886* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417887 ../trimmed/SRR6417887* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417888 ../trimmed/SRR6417888* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417889 ../trimmed/SRR6417889* 
+kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417890 ../trimmed/SRR6417890*
