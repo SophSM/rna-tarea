@@ -11,7 +11,7 @@ In this report we are going to do an analisis of RNA-seq data using the followin
 
 ## Pipeline
 
-### Quality control
+#### Quality control
 
 The first step in our pipeline for the analysis is to make a quality report of the raw reads we are provided in order to assess possible quality control strategies and therefore be able to make good conclusion from the full analysis.
 
@@ -21,9 +21,9 @@ For the quality report we are going to use the Multiqc module, using the fastq f
 /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520
 ```
  
-We run the following script from our directory
+The following script was used for downloading of raw data files and making a multiqc quality control report of said data files.
 
-```{bash}
+```{bash eval = F}
 #!/bin/bash
 # Use current working directory
 #$ -cwd
@@ -67,20 +67,26 @@ fastqc /mnt/Timina/bioinfoII/rnaseq/tarea/data/SRP127520/SRR6417890.sra_2.fastq.
 multiqc .
 ```
 
+The following code was used for running the previous bash script.
 
 ```{bash eval = F}
 cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC
 qsub multiqc1.sge
 ```
 
-And downloading the multiqc report
-```{bash}
+And downloading the multiqc report in the local computer
+
+```{bash eval = F}
 rsync -rptuvl ssalazar@dna.lavis.unam.mx:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC/multiqc_report1.html .
 ```
 
-Based on the report, we are discarding sequences with less than 30Q and also trimmin the ILLUMINA adapter sequences.
+Based on the report, we are discarding sequences with less than 30Q and also trimming the ILLUMINA adapter sequences, as there seems to be a high adapter content in a lot of sequences, as shown in the following graph.
 
-## Trimming
+```{r echo=FALSE}
+knitr::include_graphics('fastqc_adapter_content_plot.png')
+```
+
+#### Trimming
 
 For the trimming, we are using the trimmomatic tool, using the following arguments
 
@@ -90,13 +96,13 @@ For the trimming, we are using the trimmomatic tool, using the following argumen
 
 **ILLUMINACLIP:** We use the adapters in the fasta file, :2:30:10 are mismatch/accuracy treshold for adapter/reads pairing.
 
-**SLIDINGWINDOW:5:30** Scaning the reads in a 4 base window. If mean quality under 15 in that window, the read is trimmed in the leftmost position of the window.
+**SLIDINGWINDOW:5:30** Scaning the reads in a 5 base window. If mean quality under 15 in that window, the read is trimmed in the leftmost position of the window.
 
 **MINLEN:** is the minimum length of reads we are accepting, if they are shorted after trimming, we discard them.
 
 The full script, adding the command to create a multiqc report of the trimmed sequences is the following:
 
-```{bash}
+```{bash eval = F}
 #!/bin/bash
 # Use current working directory
 #$ -cwd
@@ -141,47 +147,57 @@ fastqc ./SRR6417890* -o /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2
 multiqc /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2
 ```
 
-```{bash}
+The following commands were used for running the script
+
+```{bash eval = F}
+cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/trimmed
 qsub trimming-qc.sge
 ```
+
 And downloading the multiqc report
-```{bash}
+
+```{bash eval = F}
 rsync -rptuvl ssalazar@dna.lavis.unam.mx:/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/QC2/multiqc_report2.html .
 ```
 
-### Alignment
+After trimming, we can see that the adapter content was significantly reduced and also we see that we have a clear GC, distribution, meaning that we don't have sequences that may be overepresented and therefore giving us a distrurbed distribution.
 
-We are using transcriptome mapping because:
-we have paired end??
-human transcriptome is already annotated 
-we are mainly interested in transcriptome
+```{r echo=FALSE}
+knitr::include_graphics('2-fastqc_adapter_content_plot.png')
+```
 
-We first download the reference transcriptome from GENCODE
-```{bash}
-# from rna-seq/tarea
+```{r echo=FALSE}
+knitr::include_graphics('2-fastqc_per_sequence_gc_content_plot.png')
+```
+
+#### Alignment
+
+In order to do the alignment, we are using transcriptome mapping because we have paired end sequences, the human transcriptome is already annotated and we are mainly interested in count differences between two groups. Therefore we are using `kallisto`.
+
+We first download the reference transcriptome from GENCODE.
+
+```{bash eval = F}
+cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea
 mkdir resources
 cd resources
 wget http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.transcripts.fa.gz
 ```
 
-Making the transcriptome index
+Then we make the transcriptome index in order to be able to align our reads.
 
-```{bash}
+```{bash eval = F}
 module load kallisto/0.45.0
 kallisto index -i index_kallisto45_gencode_human_v38 gencode.v38.transcripts.fa.gz
 ```
 
-### Quantification
+#### Quantification
 
-We first make directories for each sample
-```{bash}
+We first make directories for each sample, using the following commands.
+
+```{bash eval = F}
 cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out
 mkdir kallisto 
 ls ../trimmed/ | perl -pe 's/(SRR\d+)_trmd.*/mkdir $1/' | uniq
-```
-
-
-```{bash}
 mkdir SRR6417885
 mkdir SRR6417886
 mkdir SRR6417887
@@ -189,15 +205,14 @@ mkdir SRR6417888
 mkdir SRR6417889
 mkdir SRR6417890
 ```
+We generate the lines for our bash script with the following code.
 
-generate lines for our bash script
-
-```{bash}
+```{bash eval = F}
 ls | grep "SRR" | perl -pe 's/(SRR\d+)/kallisto quant -i ..\/..\/resources\/index_kallisto45_gencode_human_v38 -o .\/$1 ..\/trimmed\/$1* /'
 ```
+This is the full bash script:
 
-Bash script
-```{bash}
+```{bash eval = F}
 #!/bin/bash
 # Use current working directory
 #$ -cwd
@@ -233,23 +248,28 @@ kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR641
 kallisto quant -i ../../resources/index_kallisto45_gencode_human_v38 -o ./SRR6417890 ../trimmed/SRR6417890* 
 ```
 
-```{bash}
+We run the script with the command:
+
+```{bash eval = F}
 qsub quantification.sge
 ```
 
-### Data integration
+#### Data integration
 
-Using tximport
+Using `tximport` in order to import our data in a way we can work with.
 
-```{bash}
-screen -S txi
+Setting R in the cluster since `tximport` is run from there.
+
+```{bash eval = F}
+qlogin
 cd /mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/kallisto
 module load r/4.0.2
 R
 ```
 
+We first extract the names of the samples from the directories we previously created, and save them in our `files` variable.
 
-```{r}
+```{r eval=FALSE}
 library(tximport)
 library(tidyverse)
 files <- file.path("/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/out/kallisto", list.dirs("."), "abundance.h5")
@@ -257,186 +277,92 @@ names(files) <- str_extract(files,"SRR\\d+")
 files <- files[c(2, 3, 4, 5, 6, 7)]
 ```
 
-Transcripts need to be associated with gene IDs for gene-level summarization
-For kallisto, the files only provide the transcript ID.
-We first make a data.frame called tx2gene with two columns: 1) transcript ID and 2) gene ID.
+Transcripts need to be associated with gene IDs for gene-level summarization, since for kallisto, the files only provide the transcript ID, we first make a data.frame called tx2gene with two columns: 1) transcript ID and 2) gene ID, using the genes information downloaded from GENCODE.
 
-```{r}
-# Loading tables with the info
-
+```{r eval=FALSE}
 # transcript id - gene id correspondence
 tx2gene <- read.csv("/mnt/Timina/bioinfoII/rnaseq/resources/gencode/gencode.v38.basic.pc.transcripts.enstid_ensgid-nover.csv",stringsAsFactors = F)
 # transcript id - gene name correspondence
 tx2genename <- read.csv("/mnt/Timina/bioinfoII/rnaseq/resources/gencode/gencode.v38.basic.pc.transcripts.enstid_genename-nover.csv",stringsAsFactors = F)
-
 ```
 
 
-Runing tximport to summarize transcript-level abundance estimates for transcript- and gene-level analysis.
+Runing tximport to summarize transcript-level abundance estimates for transcript and gene-level analysis.
 
-```{r}
+```{r eval=FALSE}
 txi.kallisto <- tximport(files, type = "kallisto", tx2gene = tx2gene, ignoreAfterBar=TRUE, ignoreTxVersion=TRUE)
 txi.kallisto.name <- tximport(files, type = "kallisto", tx2gene = tx2genename, ignoreAfterBar=TRUE, ignoreTxVersion=TRUE)
-
 ```
 
-```{r}
-names(txi.kallisto)
-```
+When running the following command, we can see the counts for some genes, separated by sample.
 
-[1] "abundance"           "counts"              "length"             
-[4] "countsFromAbundance"
-
-```{r}
+```{r eval=FALSE}
 head(txi.kallisto$counts)
 ```
 
-                 SRR6417885  SRR6417886 SRR6417887 SRR6417888 SRR6417889
-ENSG000000000035  48.856706 36.12039819  24.279581  39.413793  37.693556
-ENSG00000000005    0.000000  0.00000000   0.000000   0.000000   0.000000
-ENSG000000004194   0.000000  1.81937909   0.000000   5.729418  22.804753
-ENSG000000004574   6.663615  0.01752127   7.742207   3.390685   8.781861
-ENSG000000004607   9.369975 11.00000000  13.829627   8.001456  16.942265
-ENSG000000009383   0.000000  0.00000000   0.000000   0.000000   0.000000
-                 SRR6417890
-ENSG000000000035  46.855202
-ENSG00000000005    0.000000
-ENSG000000004194  23.005803
-ENSG000000004574   0.000000
-ENSG000000004607   6.367758
-ENSG000000009383   0.000000
 
-### Normalization
+#### Normalization
 
-```{r}
-samples <- read.csv("/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/resources/samples.csv",stringsAsFactors = F, header = TRUE) # obtained parsing file on SRA Run Selector 
-samples <- column_to_rownames(samples, var = "Run")
-samples
+We need to normalize in order to account for potential biases in our data, this could involve transcripts with a lot of counts due to just a bigger gene fragment and making the analysis look like its differentially expressed when it's not. 
+
+It's important to note that we considered that batch effect correction was not needed as in the SRA Run page we can see that each sample corresponds to a single run of sequencing.
+
+Normalization and differential expression analysis was done with the `DESeq2` R package. Following the previous R commands, we continue with the next commands.
+
+We first load the samples information, which is downloaded from the SRA Run page in GEO.
+
+```{r eval=FALSE}
+samples <- read.csv("/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/resources/samples.csv",stringsAsFactors = F, header = TRUE)
 ```
 
-      Assay.Type AvgSpotLen       Bases  BioProject    BioSample
-SRR6417885    RNA-Seq        300 12773176500 PRJNA427471 SAMN08242902
-SRR6417886    RNA-Seq        300 11734114800 PRJNA427471 SAMN08242901
-SRR6417887    RNA-Seq        300 12898263600 PRJNA427471 SAMN08242900
-SRR6417888    RNA-Seq        300 11938590300 PRJNA427471 SAMN08242899
-SRR6417889    RNA-Seq        300 14398560300 PRJNA427471 SAMN08242898
-SRR6417890    RNA-Seq        300 13948899900 PRJNA427471 SAMN08242897
-                Bytes Cell_Line Center.Name Consent DATASTORE.filetype
-SRR6417885 5233611886      A549         GEO  public          fastq,sra
-SRR6417886 4896761293      A549         GEO  public          fastq,sra
-SRR6417887 5304248538      A549         GEO  public          fastq,sra
-SRR6417888 5062237114      A549         GEO  public          fastq,sra
-SRR6417889 5962982366      A549         GEO  public          fastq,sra
-SRR6417890 5745034790      A549         GEO  public          fastq,sra
-           DATASTORE.provider               DATASTORE.region Experiment
-SRR6417885         gs,ncbi,s3 gs.US,ncbi.public,s3.us-east-1 SRX3510910
-SRR6417886         gs,ncbi,s3 gs.US,ncbi.public,s3.us-east-1 SRX3510911
-SRR6417887         gs,ncbi,s3 gs.US,ncbi.public,s3.us-east-1 SRX3510912
-SRR6417888         gs,ncbi,s3 gs.US,ncbi.public,s3.us-east-1 SRX3510913
-SRR6417889         gs,ncbi,s3 gs.US,ncbi.public,s3.us-east-1 SRX3510914
-SRR6417890         gs,ncbi,s3 gs.US,ncbi.public,s3.us-east-1 SRX3510915
-                  Genotype GEO_Accession..exp.          Instrument
-SRR6417885       wild type          GSM2902357 Illumina HiSeq 2000
-SRR6417886       wild type          GSM2902358 Illumina HiSeq 2000
-SRR6417887       wild type          GSM2902359 Illumina HiSeq 2000
-SRR6417888 FOXP1 knockdown          GSM2902360 Illumina HiSeq 2000
-SRR6417889 FOXP1 knockdown          GSM2902361 Illumina HiSeq 2000
-SRR6417890 FOXP1 knockdown          GSM2902362 Illumina HiSeq 2000
-           LibraryLayout LibrarySelection  LibrarySource     Organism Platform
-SRR6417885        PAIRED             cDNA TRANSCRIPTOMIC Homo sapiens ILLUMINA
-SRR6417886        PAIRED             cDNA TRANSCRIPTOMIC Homo sapiens ILLUMINA
-SRR6417887        PAIRED             cDNA TRANSCRIPTOMIC Homo sapiens ILLUMINA
-SRR6417888        PAIRED             cDNA TRANSCRIPTOMIC Homo sapiens ILLUMINA
-SRR6417889        PAIRED             cDNA TRANSCRIPTOMIC Homo sapiens ILLUMINA
-SRR6417890        PAIRED             cDNA TRANSCRIPTOMIC Homo sapiens ILLUMINA
-                    ReleaseDate Sample.Name                      source_name
-SRR6417885 2018-02-11T00:00:00Z  GSM2902357          A549 cell lines;control
-SRR6417886 2018-02-11T00:00:00Z  GSM2902358          A549 cell lines;control
-SRR6417887 2018-02-11T00:00:00Z  GSM2902359          A549 cell lines;control
-SRR6417888 2018-02-11T00:00:00Z  GSM2902360  FOXP1 knockdown A549 cell lines
-SRR6417889 2018-02-11T00:00:00Z  GSM2902361 FOXP1 knockdown A549 cell linesl
-SRR6417890 2018-02-11T00:00:00Z  GSM2902362  FOXP1 knockdown A549 cell lines
-           SRA.Study              tissue
-SRR6417885 SRP127520 lung adenocarcinoma
-SRR6417886 SRP127520 lung adenocarcinoma
-SRR6417887 SRP127520 lung adenocarcinoma
-SRR6417888 SRP127520 lung adenocarcinoma
-SRR6417889 SRP127520 lung adenocarcinoma
-SRR6417890 SRP127520 lung adenocarcinoma
+`Run` is the variable with the sample name, as we only have one run per sample.
 
-```{r}
+```{r eval=FALSE}
+samples <- column_to_rownames(samples, var = "Run")
+```
+
+Then we perform our differential expression analysis, giving in `design`, our variable of interest which would be the condition of the sample, e.g whether is a wild type or FOXP1 knockdown sample.
+
+```{r eval=FALSE}
 library(DESeq2)
 dds <- DESeqDataSetFromTximport(txi.kallisto,
                                    colData = samples,
-                                   design = ~ Genotype) 
-# + si hay vars en condiciones
+                                   design = ~ Genotype)
 ```
 
-```{r}
-dds
-```
+We filter reads with less than 10 counts as used in `DESeq2` documentation.
 
-class: DESeqDataSet
-dim: 19453 6
-metadata(1): version
-assays(2): counts avgTxLength
-rownames(19453): ENSG000000000035 ENSG00000000005 ... ENSG00000288722
-ENSG00000288725
-rowData names(0):
-colnames(6): SRR6417885 SRR6417886 ... SRR6417889 SRR6417890
-colData names(26): Assay.Type AvgSpotLen ... SRA.Study tissue
-
-```{r}
-# Prefiltrado para quitar genes con cuentas bajas
+```{r eval=FALSE}
 keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep, ]
 dds$Genotype <- factor(dds$Genotype, levels = c("wild type","FOXP1 knockdown"))
 dds <- DESeq(dds)
-```
-
-```{r}
-# use contrast= parameter if design formula has > 2 levels
 res <- results(dds)
-res
+summary(res)
 ```
 
-log2 fold change (MLE): Genotype FOXP1.knockdown vs wild.type
-Wald test p-value: Genotype FOXP1.knockdown vs wild.type
-DataFrame with 10831 rows and 6 columns
-                  baseMean log2FoldChange     lfcSE      stat     pvalue
-                 <numeric>      <numeric> <numeric> <numeric>  <numeric>
-ENSG000000000035  40.52100     -0.0524047  0.434333 -0.120656 0.90396381
-ENSG000000004194   8.02003      4.2945438  1.322891  3.246332 0.00116903
-ENSG000000004574   4.41804     -0.6385878  1.566245 -0.407719 0.68347991
-ENSG000000004607  11.33065     -0.5514932  0.682694 -0.807819 0.41919494
-ENSG000000010843  30.27042     -0.1124562  0.384476 -0.292492 0.76991031
-...                    ...            ...       ...       ...        ...
-ENSG00000288701  304.67259       0.188924  0.100165  1.886114  0.0592795
-ENSG00000288702   11.83816       0.278061  0.985937  0.282027  0.7779225
-ENSG00000288709   30.72393      -0.291760  0.359618 -0.811305  0.4171906
-ENSG00000288710    2.76967      -0.363605  2.146279 -0.169412  0.8654729
-ENSG00000288722   24.39237      -0.410888  1.396288 -0.294271  0.7685505
-                      padj
-                 <numeric>
-ENSG000000000035  0.981802
-ENSG000000004194        NA
-ENSG000000004574        NA
-ENSG000000004607        NA
-ENSG000000010843  0.941239
-...                    ...
-ENSG00000288701   0.316297
-ENSG00000288702         NA
-ENSG00000288709   0.788419
-ENSG00000288710         NA
-ENSG00000288722         NA
+We get that around 1.7% of genes can be considered upregulated and 2.1% downregulated.
 
-## Volcano Plot
+Lowering the threshold on padj, we get that 1.2% genes are upregulated and 1.7% downregulated.
 
-In order to visualize the normalized data we can make use, in this case, of a volcano plot. In this way, we will be able to easily account for the genes that have a higher p-value significance.
-The arguments wont vary from what was given in class, except for the out directroy.
+```{r eval=FALSE}
+res.05 <- results(dds, alpha = 0.05)
+summary(res.05)
+```
 
 
-```{r}
+Using the differential expression analysis we can apply filters to the `padj` value in order to create graphs to view the information.
+
+```{r eval=FALSE}
+resSig <- subset(res, padj < 0.1)
+head(resSig[ order(resSig$log2FoldChange, decreasing = T), ])
+```
+
+#### Volcano plot
+
+In order to visualize the normalized data we can make use, in this case, of a volcano plot. In this way, we will be able to easily account for the genes that have a higher p-value significance. The following plots were made with slight changes in the creation commands.
+
+```{r eval=FALSE}
 library(ggplot2) # we load ggplot2
 outdir = "/mnt/Timina/bioinfoII/bvillalobos/rna-seq/results/"
 png(file = paste0(outdir,"volcano01-res.png"),
@@ -447,9 +373,13 @@ ggplot(data=as.data.frame(res), aes(x=log2FoldChange, y=pvalue)) +
 dev.off()
 ```
 
+```{r echo=FALSE}
+knitr::include_graphics('volcano01-res.png')
+```
+
 We then make a more clear version of the plot:
 
-```{r}
+```{r eval=FALSE}
 png(file = paste0(outdir,"volcano02-res.png"),
     width = 800, height = 800) # save as a png
 ggplot(data=as.data.frame(res), aes(x=log2FoldChange, y=-log10(pvalue))) +
@@ -457,9 +387,13 @@ ggplot(data=as.data.frame(res), aes(x=log2FoldChange, y=-log10(pvalue))) +
 dev.off()
 ```
 
+```{r echo=FALSE}
+knitr::include_graphics('volcano02-res.png')
+```
+
 Then we mark a threshold for significance.
 
-```{r}
+```{r eval=FALSE}
 png(file = paste0(outdir,"volcano03-res.png"),
     width = 800, height = 800) # save as png
 ggplot(data=as.data.frame(res), aes(x=log2FoldChange, y=-log10(pvalue))) +
@@ -471,9 +405,13 @@ ggplot(data=as.data.frame(res), aes(x=log2FoldChange, y=-log10(pvalue))) +
 dev.off()
 ```
 
+```{r echo=FALSE}
+knitr::include_graphics('volcano03-res.png')
+```
+
 We can classify our data by the given threshold in down, up and no differentially expressed. 
 
-```{r}
+```{r eval=FALSE}
 # Add a column to the data frame to specify if they are UP- or DOWN- regulated (log2FoldChange respectively positive or negative)
 de <- as.data.frame(res)
 # add a column of NAs
@@ -492,35 +430,146 @@ ggplot(data=de, aes(x=log2FoldChange, y=-log10(pvalue), col=diffexpressed)) +
 dev.off()
 ```
 
-Finally, we can add the names of the interest genes, which in this case its unclear whether they should be or not.
+```{r echo=FALSE}
+knitr::include_graphics('volcano04-res.png')
+```
 
-```{r}
-library(ggrepel) # this avoids interlap betewwn text
-# Create a new column "names" to de, that will contain the name of a subset if genes differentially expressed (NA in case they are not)
+
+Finally, we can create a plot adding the names of the genes of interest.
+
+```{r eval=FALSE}
+library(ggrepel)
 de$names <- NA
-# filter for a subset of interesting genes
-filter <- which(de$diffexpressed != "NO" & de$padj < 0.05 & (de$log2FoldChange >= 9 | de$log2FoldChange <= -9))
+filter <- which(de$diffexpressed != "NO" & de$padj < 0.05 & (de$log2FoldChange >= 1 | de$log2FoldChange <= -1))
 de$names[filter] <- rownames(de)[filter]
-# Create and  save plot
 png(file = paste0(outdir,"volcano05-res.png"),
-    width = 800, height = 800) # save as png
+    width = 800, height = 800)
 ggplot(data=de, aes(x=log2FoldChange, y=-log10(pvalue), col=diffexpressed, label=names)) +
     geom_point() +
-    scale_color_manual(values=c("blue", "black", "red")) + # change data color
+    scale_color_manual(values=c("blue", "black", "red")) + # cambiar colores de puntos
     theme_minimal() +
     geom_text_repel() +
     xlim(-15,15)
 dev.off()
 ```
 
+```{r echo=FALSE}
+knitr::include_graphics('volcano05-res.png')
+```
+
+#### Functional enrichment analysis
+
+We also make a functional analysis with Gene Ontology information in order to contextualize our results. We use the `g:Profiler` R package to create the graphs and the analysis.
+
+We create a graph for the downregulated genes, using a `padj` threshold of $<0.01$ and a `log2FoldChange` value of $-2$ as in the original paper these parameters were considered for differentially expressed genes.
+
+```{r eval=FALSE}
+library(ggrepel)
+library(gprofiler2)
+library(forcats)
+# Downregulated genes
+resSig <- subset(res, padj < 0.01 & log2FoldChange < -2)
+resSig <- resSig[ order(resSig$log2FoldChange, decreasing = TRUE), ]
+# gene lists
+DEG <- rownames(resSig)
+genes_universe <- rownames(dds)
+gostres = gost(query = DEG, organism = "hsapiens", significant = T, 
+               correction_method = "fdr", domain_scope = "custom", 
+               custom_bg = genes_universe, ordered_query = TRUE)
+library(ggplot2)
+outdir = "/mnt/Timina/bioinfoII/ssalazar/rna-seq/tarea/results/"
+go <- as.data.frame(gostres$result)
+png(file = paste0(outdir,"downregulated.png"),
+    width = 1800, height = 800)
+go %>%
+  dplyr::slice(1:15) %>%
+  select(p_value, term_name) %>%
+  mutate(go = fct_reorder(term_name, p_value)) %>%
+  ggplot( aes(x=go, y=p_value)) +
+  geom_bar(stat="identity", fill="#3A68AE", alpha=.6, width=.4) +
+  coord_flip() +
+  labs(x = "", y = "Adjusted P-value") +
+  theme_bw(base_size = 20)
+
+dev.off()
+```
+
+The following functions were shown affected when looking at the downregulated genes.
+
+```{r echo=FALSE, out.width='100%', out.height='100%'}
+knitr::include_graphics('downregulated.png')
+```
+
+Then we create the same graph for the upregulated genes using the same previous parameters.
+
+```{r eval = F}
+# Upregulated genes
+resSig <- subset(res, padj < 0.01 & log2FoldChange > 2) # subset
+resSig <- resSig[ order(resSig$log2FoldChange, decreasing = TRUE), ]
+DEG <- rownames(resSig)
+genes_universe <- rownames(dds)
+gostres = gost(query = DEG, organism = "hsapiens", significant = T, 
+               correction_method = "fdr", domain_scope = "custom", 
+               custom_bg = genes_universe, ordered_query = TRUE)
+go <- as.data.frame(gostres$result)
+png(file = paste0(outdir,"upregulated.png"),
+    width = 1800, height = 800)
+go %>%
+  dplyr::slice(1:15) %>%
+  select(p_value, term_name) %>%
+  mutate(go = fct_reorder(term_name, p_value)) %>%
+  ggplot( aes(x=go, y=p_value)) +
+  geom_bar(stat="identity", fill="#3A68AE", alpha=.6, width=.4) +
+  coord_flip() +
+  labs(x = "", y = "Adjusted P-value") +
+  theme_bw(base_size = 20)
+
+dev.off()
+
+```
+
+The following functions were shown affected when looking at the upregulated genes.
+
+```{r echo=FALSE}
+knitr::include_graphics('upregulated.png')
+```
+
+## Discusion
+
+In the paper it was concluded that FOXP1 is indeed downregulated in lung adenocarcinoma. Genes that are related to chemokine signalling pathways are downstream events of FOXP1 effects (Sheng, et. al). Therefore, in the absence of FOXP1 it would make sense for them to be downregulated too. In the downregulated GO functional analysis plot, we observe that the cytokines and inflamatory response is present, as well as some other function involving interleukins. The glucocortidcoid receptor pathway is also represented. 
+
+Chemokines are chemoattractive cytokines and it is known that glucocorticoids have an inhibitory effect on production of cytokines (Miyamasu, et. al). Therefore there may be a relation between this inhibitory effect and the downregulation of FOXP1 which also downregulates genes in the chemokine signalling pathway as well as affecting other cytokines's signalling.
+
+In the analysis we can also see in the upregulated GO graph that growth factor and complexes are represented. In the paper they mentioned that it has been shown that the expression of GNG7, which  functions as a tumor suppressor in other cancers, was however incresed in lung cancer cells after the knockdown of FOXP1, suggesting that it may exert oncogenic effects in lung cancer (Sheng, et. al). Therefore it would make sense to also have these representations of growth factors in the upregulated GO analysis graph.
+
+## Conclusion
+
+This time we learned how to analize RNA-seq data. At first we could evaluate the quality of the reads by using the `multiqc` tool, which helped us discard the low quality
+sequences. We then made use of a trimming algorithm and the use of adapters to improve th quality of our reads. We also implemented the `kallisto` and `tximport` packages and we managed to 
+take indices and alignments for the data given. We can mention as a central topic the normalization step, and the multiple techniques that can be used, although here the `deseq2` module
+was enough. After that, we could take several ways to analize the normalized data, as MA plots or volcano plots (used here).
+
+Finally, we were able to summarize our results in a graphical way by contextualizing with a gene functional analysis.
 
 ## References
 
-https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html
+- Bolger, A. M., Lohse, M., & Usadel, B. (2014). Trimmomatic: A flexible trimmer for Illumina Sequence Data. Bioinformatics, btu170. Retrieved 15 March 2022, from http://www.usadellab.org/cms/?page=trimmomatic
 
-http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
+- GENCODE Project. (n.d). GENCODE Release Files Description. Retrieved 17 March 2022, from http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/latest_release/_README.TXT
 
-http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/latest_release/_README.TXT
+- Hua Sheng, Xiangyang Li & Yi Xu (2019) Knockdown of FOXP1 promotes the development of lung adenocarcinoma, Cancer Biology & Therapy, 20:4, 537-545, DOI: 10.1080/15384047.2018.1537999
 
-https://pachterlab.github.io/kallisto/manual
+- Kallisto. (n.d). Manual.  Retrieved 16 March 2022, from https://pachterlab.github.io/kallisto/manual
+
+- Kolberg, L., Raudvere, U. (2021). gprofiler2: Interface to the 'g:Profiler' Toolset. Retrieved 20 March 2022, from https://cran.r-project.org/web/packages/gprofiler2/index.html
+
+- Love, M., Soneson, C., Robinson, M. (2021). Importing transcript abundance with tximport. Retrieved 14 March 2022, from https://bioconductor.org/packages/release/bioc/vignettes/tximport/inst/doc/tximport.html
+
+- Miyamasu, M., Misaki, Y., et. al (1998) Glucocorticoids inhibit chemokine generation by human eosinophils, Journal of Allergy and Clinical Immunology. Vol. 101, Issue 1, 75-83, DOI: 10.1016/S0091-6749(98)70196-4
+
+
+
+
+
+
 
